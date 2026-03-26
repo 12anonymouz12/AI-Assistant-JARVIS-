@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JARVIS v2.5 - HUD</title>
+    <style>
+        :root { 
+            --primary-blue: #00d4ff; 
+            --secondary-blue: #0099ff; 
+            --tertiary-blue: #6366f1;
+            --dark-blue: #001a40;
+            --accent-blue: #00e5ff;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--primary-blue); opacity: 0.5; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        body { 
+            margin: 0; background: #000000; 
+            color: var(--primary-blue); font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; 
+        }
+
+        /* HUD TOP BAR */
+        #hud-top { 
+            position: absolute; top: 0; width: 100%; display: flex; justify-content: space-between; 
+            padding: 15px 30px; background: transparent; border-bottom: 1px solid rgba(0, 212, 255, 0.2); 
+            z-index: 100; box-sizing: border-box; font-size: 12px; letter-spacing: 2px;
+        }
+
+        /* SIDEBAR */
+        #sidebar { 
+            width: 220px; border-right: 1px solid rgba(0, 212, 255, 0.15); padding: 80px 15px 20px; 
+            background: transparent; display: flex; flex-direction: column; transition: 0.3s; overflow-y: auto;
+        }
+        #sidebar.collapsed { width: 0; padding: 0; overflow: hidden; border: none; }
+
+        .sidebar-label { font-size: 10px; color: rgba(0, 212, 255, 0.5); margin: 20px 0 10px; text-transform: uppercase; }
+        .sidebar-btn { 
+            background: transparent; border: 1px solid var(--secondary-blue); color: var(--secondary-blue); 
+            padding: 10px; cursor: pointer; margin-bottom: 10px; font-size: 11px; text-align: left;
+            transition: 0.2s;
+        }
+        .sidebar-btn:hover { 
+            background: rgba(0, 153, 255, 0.1);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .file-item { 
+            padding: 8px; border: 1px solid rgba(0, 212, 255, 0.15); margin-bottom: 5px; 
+            font-size: 11px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--secondary-blue);
+            transition: 0.2s;
+        }
+        .file-item:hover { 
+            border-color: var(--primary-blue); 
+            background: rgba(0, 212, 255, 0.05); 
+            color: var(--primary-blue);
+        }
+
+        /* MAIN CHAT AREA */
+        #main { flex: 1; display: flex; flex-direction: column; position: relative; }
+        #chatbox { 
+            flex: 1; padding: 100px 60px 20px; overflow-y: auto; scroll-behavior: smooth;
+            background: transparent;
+        }
+        
+        .message-container { margin-bottom: 20px; animation: slideUp 0.3s ease-out; display: flex; gap: 12px; }
+        .message-container.user { justify-content: flex-end; }
+        .message-container.bot { justify-content: flex-start; }
+        
+        .message-bubble { 
+            max-width: 75%; padding: 0; line-height: 1.6; font-size: 15px;
+            background: transparent;
+            border: none;
+        }
+        .message-container.user .message-bubble { 
+            color: var(--secondary-blue);
+        }
+        .message-container.bot .message-bubble { 
+            color: var(--primary-blue);
+        }
+        
+        .message-label { font-size: 12px; margin-bottom: 6px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* MARKDOWN FORMATTING */
+        .bot-message strong { color: var(--accent-blue); font-weight: 600; }
+        .bot-message em { color: var(--tertiary-blue); font-style: italic; }
+        .bot-message code { 
+            background: transparent; padding: 2px 6px; border-radius: 4px; 
+            color: var(--accent-blue); font-family: 'Courier New', monospace; font-size: 13px;
+            border: 1px solid rgba(0, 229, 255, 0.3);
+        }
+        .bot-message pre { 
+            background: transparent; padding: 12px; border-radius: 6px; 
+            overflow-x: auto; border: 1px solid rgba(0, 212, 255, 0.2); margin: 8px 0;
+        }
+        .bot-message pre code { padding: 0; background: none; border: none; color: var(--accent-blue); }
+        .bot-message ul, .bot-message ol { margin: 8px 0; padding-left: 24px; }
+        .bot-message li { margin: 4px 0; color: var(--primary-blue); }
+        .bot-message h1, .bot-message h2, .bot-message h3 { 
+            margin: 12px 0 8px; color: var(--accent-blue); font-weight: 600;
+        }
+        .bot-message blockquote { 
+            border-left: 3px solid var(--tertiary-blue); padding-left: 12px; margin: 8px 0; 
+            opacity: 0.8; font-style: italic; color: var(--secondary-blue);
+        }
+        
+        @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:0; } }
+
+        /* INPUT AREA */
+        #inputContainer { 
+            padding: 20px 60px; 
+            background: transparent; 
+            border-top: 1px solid rgba(0, 212, 255, 0.15);
+        }
+        #inputWrapper { display: flex; gap: 12px; align-items: flex-end; }
+        #msgInput { 
+            flex: 1; background: transparent; border: 1px solid rgba(0, 212, 255, 0.3); 
+            outline: none; color: var(--primary-blue); font-size: 15px; font-family: inherit; 
+            padding: 12px 16px; border-radius: 8px; resize: vertical; max-height: 120px; min-height: 45px;
+            transition: 0.2s;
+        }
+        #msgInput:focus { 
+            border-color: var(--accent-blue); 
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+        }
+        #msgInput::placeholder { color: rgba(0, 212, 255, 0.3); }
+        
+        #sendBtn { 
+            background: transparent; 
+            border: 1px solid var(--secondary-blue); 
+            color: var(--secondary-blue); 
+            padding: 12px 18px; cursor: pointer; border-radius: 6px; font-size: 14px; font-weight: 600;
+            transition: 0.2s;
+        }
+        #sendBtn:hover { 
+            background: rgba(0, 153, 255, 0.1);
+            color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        
+        #stopBtn { 
+            background: transparent; 
+            border: 1px solid #ff6b6b; 
+            color: #ff6b6b; 
+            padding: 12px 18px; cursor: pointer; border-radius: 6px; font-size: 14px; font-weight: 600;
+            transition: 0.2s;
+            display: none;
+        }
+        #stopBtn:hover { 
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff8787;
+            border-color: #ff8787;
+        }
+        #stopBtn.active {
+            display: block;
+        }
+        
+        #toggle-btn { 
+            position: absolute; left: 20px; top: 18px; z-index: 110; background: none; border: none; 
+            color: var(--primary-blue); cursor: pointer; font-size: 20px; transition: 0.2s;
+        }
+        #toggle-btn:hover { color: var(--accent-blue); }
+        
+        .stat-val { color: var(--accent-blue); margin-right: 20px; }
+    </style>
+</head>
+<body onload="initSystem()">
+
+<div id="hud-top">
+    <div>JARVIS_OS // <span id="clock">00:00:00</span></div>
+    <div>
+        CORE: <span class="stat-val" id="model-stat">LOADING...</span>
+        MEMORY: <span class="stat-val" id="mem-stat">0</span>
+    </div>
+</div>
+
+<button id="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+<div id="sidebar">
+    <button class="sidebar-btn" onclick="loadHistory()">⟲ RESTORE PREVIOUS</button>
+    <div class="sidebar-label">Recently Generated</div>
+    <div id="file-list"></div>
+</div>
+
+<div id="main">
+    <div id="chatbox"></div>
+    <div id="inputContainer">
+        <div id="inputWrapper">
+            <textarea id="msgInput" placeholder="Enter command or request document/PPT..." autocomplete="off" onkeydown="handleInputKeydown(event)"></textarea>
+            <button id="sendBtn" onclick="send()">SEND</button>            <button id="stopBtn" onclick="stopGeneration()">STOP</button>        </div>
+    </div>
+</div>
+
+<script>
+    let isGenerating = false;
+    let currentAnimationFrameId = null;
+    let currentLoadingElement = null;
+
+    function toggleSidebar() { document.getElementById("sidebar").classList.toggle("collapsed"); }
+
+    // Handle Enter key in textarea (Shift+Enter for new line, Enter to send)
+    function handleInputKeydown(event) {
+        if(event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            send();
+        }
+    }
+
+    // Auto-resize textarea
+    function autoResizeTextarea() {
+        const textarea = document.getElementById("msgInput");
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+
+    // Parse markdown to HTML
+    function parseMarkdown(text) {
+        // Escape HTML
+        text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        // Code blocks (``` ```)
+        text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+        
+        // Inline code
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
+        // Bold
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/__(.*?)__/g, '<strong>$1</strong>');
+        
+        // Italic
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        text = text.replace(/_(.*?)_/g, '<em>$1</em>');
+        
+        // Headings
+        text = text.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+        text = text.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+        text = text.replace(/^# (.*?)$/gm, '<h1>$1</h1>');
+        
+        // Unordered lists
+        text = text.replace(/^\* (.*?)$/gm, '<li>$1</li>');
+        text = text.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+        
+        // Line breaks
+        text = text.replace(/\n/g, '<br>');
+        
+        return text;
+    }
+
+    function showStopButton() {
+        document.getElementById("stopBtn").classList.add("active");
+    }
+
+    function hideStopButton() {
+        document.getElementById("stopBtn").classList.remove("active");
+    }
+
+    function stopGeneration() {
+        isGenerating = false;
+        if (currentAnimationFrameId) {
+            cancelAnimationFrame(currentAnimationFrameId);
+            currentAnimationFrameId = null;
+        }
+        if (currentLoadingElement) {
+            currentLoadingElement.remove();
+            currentLoadingElement = null;
+        }
+        hideStopButton();
+    }
+
+    async function initSystem() {
+        setInterval(() => document.getElementById("clock").innerText = new Date().toLocaleTimeString(), 1000);
+        refreshHUD();
+        setInterval(refreshHUD, 8000);
+
+        const res = await fetch("/welcome");
+        const data = await res.json();
+        addBotLine(data.reply);
+
+        // Add listener for auto-resize
+        document.getElementById("msgInput").addEventListener("input", autoResizeTextarea);
+    }
+
+    async function refreshHUD() {
+        const res = await fetch("/status");
+        const s = await res.json();
+        document.getElementById("model-stat").innerText = s.model;
+        document.getElementById("mem-stat").innerText = s.memories;
+        
+        const fRes = await fetch("/files");
+        const files = await fRes.json();
+        document.getElementById("file-list").innerHTML = files.map(f => 
+            `<div class="file-item" onclick="openFile('${f}')">📄 ${f}</div>`).join('');
+    }
+
+    function openFile(n) { fetch(`/open_local/${n}`); }
+
+    async function loadHistory() {
+        const res = await fetch("/history");
+        const history = await res.json();
+        const chatbox = document.getElementById("chatbox");
+        chatbox.innerHTML = '<div style="text-align:center; opacity:0.4; margin:20px 0;">--- HISTORY RESTORED ---</div>';
+        history.forEach(c => {
+            addUserLine(c.user);
+            addBotLine(c.bot);
+        });
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function addUserLine(text) {
+        const chatbox = document.getElementById("chatbox");
+        const container = document.createElement("div");
+        container.className = "message-container user";
+        
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble";
+        bubble.innerText = text;
+        
+        container.appendChild(bubble);
+        chatbox.appendChild(container);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function addBotLine(text) {
+        const chatbox = document.getElementById("chatbox");
+        const container = document.createElement("div");
+        container.className = "message-container bot";
+        
+        const bubble = document.createElement("div");
+        bubble.className = "message-bubble bot-message";
+        container.appendChild(bubble);
+        chatbox.appendChild(container);
+        
+        let i = 0;
+        const fullText = text;
+        function type() {
+            if(i < fullText.length && isGenerating) {
+                bubble.innerHTML = parseMarkdown(fullText.substring(0, i + 1));
+                i++;
+                currentAnimationFrameId = requestAnimationFrame(type);
+                // Only auto-scroll if user is at bottom
+                if (chatbox.scrollHeight - chatbox.scrollTop - chatbox.clientHeight < 50) {
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                }
+            } else if(i >= fullText.length) {
+                isGenerating = false;
+                hideStopButton();
+            }
+        }
+        type();
+    }
+
+    async function send() {
+        const input = document.getElementById("msgInput");
+        const val = input.value.trim(); if(!val) return;
+        input.value = "";
+        input.style.height = 'auto';
+        
+        const chatbox = document.getElementById("chatbox");
+        addUserLine(val);
+        
+        isGenerating = true;
+        showStopButton();
+        
+        const loading = document.createElement("div");
+        loading.className = "message-container bot";
+        const loadingBubble = document.createElement("div");
+        loadingBubble.className = "message-bubble";
+        loadingBubble.innerText = "Processing request...";
+        loading.appendChild(loadingBubble);
+        chatbox.appendChild(loading);
+        chatbox.scrollTop = chatbox.scrollHeight;
+        currentLoadingElement = loading;
+        
+        const res = await fetch("/chat", {
+            method: "POST", 
+            headers: {"Content-Type":"application/json"}, 
+            body: JSON.stringify({message: val}) 
+        });
+        
+        if (!isGenerating) return; // Stop was clicked
+        
+        const data = await res.json();
+        loading.remove();
+        currentLoadingElement = null;
+        addBotLine(`[${data.model}] ${data.reply}`);
+        refreshHUD();
+    }
+</script>
+</body>
+</html>
