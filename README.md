@@ -2,6 +2,9 @@
 
 A Flask-based web application with a cyberpunk HUD interface that integrates multiple AI models to provide conversational assistance, document generation, and file automation.
 
+<img width="1227" height="862" alt="image" src="https://github.com/user-attachments/assets/aabb889e-41ae-44ef-b23a-fe8917eb133b" />
+
+
 ## Overview
 
 JARVIS V2 is an intelligent assistant that combines:
